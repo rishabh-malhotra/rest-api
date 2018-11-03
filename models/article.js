@@ -1,30 +1,33 @@
 var Sequelize=require('sequelize')
 var DT=Sequelize.DataTypes
-
-var db=new Sequelize({
-    dialect:'sqlite',
-    storage:__dirname+'/test.db',
-})
+var db=require('./index')
 
 var Article=db.define('article',{
     title:{
         type:DT.STRING(50),
         allowNull:false,
-        unique:true
     },
     description:{
         type:DT.STRING(30),
-        allowNull:false,
-        unique:true
+        allowNull:true,
     },
     body:{
         type:DT.STRING(30),
-        unique:true,
-        allowNull:false
+        allowNull:true
     },
+    slug: {
+        type: DT.STRING(10),
+        allowNull: false,
+    },
+    favcount:{
+        type:DT.INTEGER(10)
+    }
+    ,
+    author:{
+        type:DT.STRING(30),
+        allowNull: false,
+    }
 })
-db.sync().then(()=>console.log('articles table has been successfully created,if one doesn\'t exist'))
-.catch(error=>console.log('This error occured',error));
 
 module.exports=Article;
 
