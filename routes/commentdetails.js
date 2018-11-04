@@ -5,8 +5,9 @@ var app = express()
 var CommentonArticle = require('../models/comment')
 const sqlite3 = require('sqlite3');
 var authorization=require('../auth')
-let db = new sqlite3.Database('./models/database.db');
-//api to post the comment on the particular article fully done acc to api checked
+let db = new sqlite3.Database('./models/database1.db');
+
+//api to post the comment on the particular article
 app.route('/articles/:slug/comments')
     .post((req, res) => {
         var token = req.headers['token'];
@@ -25,7 +26,6 @@ app.route('/articles/:slug/comments')
                                     var pro = { username: user.username, bio: user.bio, image: user.image, following: 'false' }
                                     var comments = { id: commenton.id, createdAt: commenton.createdAt, updatedAt: commenton.updatedAt, body: commenton.body, author: pro }
                                     res.status(201).json(comments)
-                                    //res.status(201).json(pro)
                                 })
                                 .catch(error => {
                                     res.status(403)
@@ -33,7 +33,7 @@ app.route('/articles/:slug/comments')
                     })}
             })
     })
-//to get all the comments on the particular article but not acc to api but still we can submit it like this if cant find any option, checked
+//to get all the comments on the particular article
 app.route('/articles/:slug/comments')
     .get((req, res) => {
         const slug = req.params.slug
@@ -43,13 +43,12 @@ app.route('/articles/:slug/comments')
                     var pro = { username: user.username, bio: user.bio, image: user.image, following: 'false' }
                     var comments = { comment: art, author: pro }
                     res.status(200).json(comments)
-                    // console.log('my comments' + art)
                 })
             })
         })
     })
 
-//api to delete the particular comment and it is working fully acc to api checked
+//api to delete the particular comment
 app.delete('/articles/:slug/comments/:cid', (req, res) => {
     var token = req.headers['token'];
     var id=authorization(token,req, res)   

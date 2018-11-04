@@ -3,12 +3,15 @@ var Article = require('../models/article')
 var randomstring = require('randomstring')
 const sqlite3 = require('sqlite3');
 var authorization = require('../auth')
-let db = new sqlite3.Database('./models/database.db');
+let db = new sqlite3.Database('./models/database1.db');
 var Favorite = require('../models/favorite')
+var Follow = require('../models/follow')
 var Tag = require('../models/tags')
 var express = require('express')
 var app = express()
 
+
+//api to get the articles according to the filters like tag, author, limits etc
 app.route('/articles')
     .get((req, res) => {
         for (let key of Object.keys(req.query)) {
@@ -65,16 +68,29 @@ app.route('/articles')
                             res.status(404).json('message:This article do not exist');
                         }
                         else {
-                            console.log('fd' + JSON.stringify(article))
                             res.status(201).json(article)
                         }
+                    })
+                    break;
+                    case 'favorited':
+                    favorited = req.query.favorited
+                     Favorite.findAll({ where: { writer: favorited } }).then(function (fav) {
+                        favs = new Array()
+                        fav.forEach(function (art) {
+                            Article.findOne({ where: [{ slug: art.slug }] })
+                                .then(function (article) {
+                                    favs.push(article)
+                                    res.status(201).json({ article: favs })
+                                })
+                        })
                     })
                     break;
                 
             }
         }
     });
-    //api to make the feed articles
+
+    //api to get the feed articles
 app.get('/articles/feed', (req, res) => {
     var token = req.headers['token'];
     var id = authorization(token, req, res)
@@ -97,8 +113,6 @@ app.get('/articles/feed', (req, res) => {
 //api to get the articles
 app.route('/article')
     .get((req, res) => {
-        abc = new Array()
-        prof = new Array()
         Article.findAll().then(function (article) {
             res.status(201).json(article)
         })
@@ -114,7 +128,9 @@ app.route('/articles')
             charset: 'alphanumeric'
         })
         var tagArray = new Array()
+        //given this string so as to avoid not defined error if tags are not provided by post
         User.findOne({ where: [{ id: id }] }).then(function (user) {
+            var tags=req.body.tags
             if (!user) {
                 res.status(404).json({ message: 'The requested User does not exist' })
             } else {
@@ -125,16 +141,18 @@ app.route('/articles')
                     slug: slug,
                     author: user.username,
                     favcount:0,
-                    tags: req.body.tags
+                    tags: tags
                 })
                     .then(function (article) {
                         var pro = { username: user.username, bio: user.bio, image: user.image, following: 'false' }
                         var artic = { slug: article.slug, title: article.title, description: article.description, body: article.body, favoritedCount: article.favcount, createdAt: article.createdAt, updatedAt: article.updatedAt, tags: article.tags, author: pro }
-                        tagArray = article.tags.split(',')
-                        for (i = 0; i < tagArray.length; i++) {
-                            Tag.create({
-                                tags: tagArray[i]
-                            })
+                        if(tags){   //wrote this condition as tags are optional
+                            tagArray = article.tags.split(',')
+                            for (i = 0; i < tagArray.length; i++) {
+                                Tag.create({
+                                    tags: tagArray[i]
+                                })
+                            }
                         }
                         res.status(201).json({ article: artic })
                     })
@@ -180,10 +198,16 @@ app.route('/articles/:slug')
                 })
                 var tags = req.body.tags
                 Article.findOne({ where: { author: user.username } }).then(function (article) {
+                    if(article){
+                    console.log(article)
                     db.run(`update articles set title=?, description=?,body=?,slug=? where slug=?`, [newtitle, description, body, slug1, slug])
                     var pro = { username: user.username, bio: user.bio, image: user.image, following: 'false' }
                     var artic = { slug: slug1, title: newtitle, description: description, body: body, tags: tags, createdAt: article.createdAt, updatedAt: article.updatedAt, author: pro }
                     res.status(201).json({ article: artic })
+                    }
+                    else{
+                        res.status(401).json({message:"cannot find the article with the given parameters"})
+                    }
                 })
             }
         })
@@ -205,34 +229,37 @@ app.delete('/articles/:slug', (req, res) => {
         })
 })
 
-//exprmnt with the favortie and unfav
-app.route('/articles/:slug/favorite')
-    .post((req, res) => {
-        var token = req.headers['token'];
-        var id = authorization(token, req, res)
-        
-        User.findOne({ where: [{ id: id }] }).then(function (user) {
-            if (!user) {
-                res.status(404).json({ message: 'The requested User does not exist' })
-            } else {
-                var slug=req.params.slug
-                Article.findOne({ where: [{ slug: slug }] }).then(function (article) {
-                    if (!article) {
-                        res.status(404).json({ message: 'The requested User does not exist' })
-                    } else {
-                        
-                        var favcount= article.favcount+1
-                        var favorited='true'
-                        db.run(`update articles set favcount=?`,[favcount])
-                        var pro = { username: user.username, bio: user.bio, image: user.image, following: 'false' }
-                        var art={slug:article.slug,title:article.title,description:article.description,body:article.body,createdAt:article.createdAt,updatedAt:article.updatedAt,favorited:favorited,favoritescount:favcount,author:pro}
-
-                        res.status(200).json({ article: art })
-                    }
-                })
-            }
-        })
+//api to favorite the particular article
+app.post('/articles/:slug/favorite', (req, res) => {
+    var token = req.headers['token'];
+    var id = authorization(token, req, res)
+     User.findOne({ where: [{ id: id }] }).then(function (user) {
+        if (!user) {
+            res.status(404).json({ message: 'The requested User does not exist' })
+        } else {
+            var slug = req.params.slug
+            Article.findOne({ where: [{ slug: slug }] }).then(function (article) {
+                if (!article) {
+                    res.status(404).json({ message: 'The requested Article does not exist' })
+                } else {
+                    Favorite.create({
+                        slug: article.slug,
+                        favcount: article.favcount + 1,
+                        writer: article.author
+                    })
+                    var favorited = 'true'
+                    var favcount = article.favcount + 1
+                    db.run(`update articles set favcount=? where slug=?`, [favcount, article.slug])
+                    var pro = { username: user.username, bio: user.bio, image: user.image, following: 'false' }
+                    var art = { slug: article.slug, title: article.title, description: article.description, body: article.body, createdAt: article.createdAt, updatedAt: article.updatedAt, favorited: favorited, favoritescount: favcount, author: pro }
+                    res.status(200).json({ article: art })
+                }
+            })
+        }
     })
+ })
+
+//api to unfavorite the article
     app.route('/articles/:slug/favorite')
     .delete((req, res) => {
         var token = req.headers['token'];
@@ -247,22 +274,24 @@ app.route('/articles/:slug/favorite')
                     if (!article) {
                         res.status(404).json({ message: 'The requested User does not exist' })
                     } else {
-                        if(article.favcount==0)
-                       { favcount= article.favcount}
-                        else{
-                            favcount=article.favcount-1
-                        }
+                            if (article.favcount == 0) {
+                                 favcount = article.favcount
+                                }
+                            else {
+                                favcount = article.favcount - 1
+                            }
                         var favorited='false'
                         var pro = { username: user.username, bio: user.bio, image: user.image, following: 'false' }
-                        db.run(`update articles set favcount=?`,[favcount])
-                        var art={slug:article.slug,title:article.title,description:article.description,body:article.body,createdAt:article.createdAt,updatedAt:article.updatedAt,favorited:favorited,favoritescount:favcount,author:pro}
-
+                        db.run(`update articles set favcount=?`, [favcount])
+                        var art = { slug: article.slug, title: article.title, description: article.description, body: article.body, createdAt: article.createdAt, updatedAt: article.updatedAt, favorited: favorited, favoritescount: favcount, author: pro }
                         res.status(200).json({ article: art })
                     }
                 })
             }
         })
     })
+
+
 
 
 module.exports = app
