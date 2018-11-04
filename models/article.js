@@ -26,7 +26,11 @@ var Article=db.define('article',{
     author:{
         type:DT.STRING(30),
         allowNull: false,
-    }
+    },
+    tags:{
+        type:DT.STRING(30),
+        allowNull: true,   
+     },
 })
 
 module.exports=Article;
