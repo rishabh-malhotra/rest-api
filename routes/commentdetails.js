@@ -28,7 +28,7 @@ app.route('/articles/:slug/comments')
                                     res.status(201).json(comments)
                                 })
                                 .catch(error => {
-                                    res.status(403)
+                                    res.status(403).json({message:'Forbidden'})
                                 })                      
                     })}
             })
@@ -45,7 +45,9 @@ app.route('/articles/:slug/comments')
                     res.status(200).json(comments)
                 })
             })
-        })
+        }).catch(error => {
+            res.status(408).json({message:'Request Timeout'})
+        }) 
     })
 
 //api to delete the particular comment
@@ -59,8 +61,10 @@ app.delete('/articles/:slug/comments/:cid', (req, res) => {
             } else {
                 const cid1 = parseInt(req.params.cid)
                 db.run(`delete from comments where id=?`, [cid1])
-                res.status(201).json({ message: 'comment deleted successfully' })
+                res.status(202).json({ message: 'comment deleted successfully' })
             }
-        })
+        }) .catch(error => {
+            res.status(400).json({message:'Could not proceed with your delete request,please try again:('})
+        }) 
 })
 module.exports = app

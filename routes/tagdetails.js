@@ -6,7 +6,9 @@ var app = express()
 app.route('/tags')
     .get((req, res) => {
         Tag.findAll().then(function (tag) {
-            res.status(201).json({tag})
-        })
+            res.status(200).json({tag})
+        }).catch(error => {
+            res.status(404).json({message:'Not Found'})
+        }) 
     });
 module.exports=app

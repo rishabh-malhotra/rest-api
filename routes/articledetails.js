@@ -29,9 +29,11 @@ app.route('/articles')
                                     article.forEach(function (art) {
                                         artic.push({ slug: art.slug, title: art.title, description: art.description, body: art.body, createdAt: art.createdAt, updatedAt: art.updatedAt, author: pro })
                                     });
-                                    res.status(201).json({ article: artic })
+                                    res.status(200).json({ article: artic })
                                 }
                             })
+                        }).catch(error => {
+                            res.status(404).json({ message: 'Not Found' })
                         })
                     break;
                 case 'limit':
@@ -53,14 +55,16 @@ app.route('/articles')
                                             i = i - 1
                                         }
                                         else {
-                                            res.status(201).json({ article: artic })
+                                            res.status(200).json({ article: artic })
                                         }
                                     })
                             })
                         }
+                    }).catch(error => {
+                        res.status(404).json({ message: 'Not Found' })
                     })
                     break;
-                    case 'tag':
+                case 'tag':
                     tag = req.query.tag
                     console.log('value of tag ' + tag)
                     Article.findAll({ where: [{ tags: tag }] }).then(function (article) {
@@ -68,29 +72,34 @@ app.route('/articles')
                             res.status(404).json('message:This article do not exist');
                         }
                         else {
-                            res.status(201).json(article)
+                            res.status(200).json(article)
                         }
+                    }).catch(error => {
+                        res.status(404).json({ message: 'Not Found' })
                     })
                     break;
-                    case 'favorited':
+                case 'favorited':
                     favorited = req.query.favorited
-                     Favorite.findAll({ where: { writer: favorited } }).then(function (fav) {
+                    Favorite.findAll({ where: { writer: favorited } }).then(function (fav) {
                         favs = new Array()
                         fav.forEach(function (art) {
                             Article.findOne({ where: [{ slug: art.slug }] })
                                 .then(function (article) {
                                     favs.push(article)
-                                    res.status(201).json({ article: favs })
+                                    res.status(200).json({ article: favs })
                                 })
                         })
+                    }).catch(error => {
+                        res.status(404).json({ message: 'Not Found' })
                     })
                     break;
-                
+
             }
         }
+
     });
 
-    //api to get the feed articles
+//api to get the feed articles
 app.get('/articles/feed', (req, res) => {
     var token = req.headers['token'];
     var id = authorization(token, req, res)
@@ -101,24 +110,18 @@ app.get('/articles/feed', (req, res) => {
             Follow.findOne({ where: [{ followedby: user.username }] }).then(function (arti) {
                 var followeduser = arti.followuser
                 Article.findAll({ where: [{ author: followeduser }] }).then(function (articles) {
-                    res.status(201).json(articles)
+                    res.status(200).json(articles)
                 })
             })
         }
-    });
- })
+    }).catch(error => {
+        res.status(403).json({ message: 'Forbidden' })
+    })
+});
 
 
 
-//api to get the articles
-app.route('/article')
-    .get((req, res) => {
-        Article.findAll().then(function (article) {
-            res.status(201).json(article)
-        })
-    });
-
-////api to post the article user can only post if he is logged in
+//api to post the article user can only post if he is logged in
 app.route('/articles')
     .post((req, res) => {
         var token = req.headers['token'];
@@ -130,7 +133,7 @@ app.route('/articles')
         var tagArray = new Array()
         //given this string so as to avoid not defined error if tags are not provided by post
         User.findOne({ where: [{ id: id }] }).then(function (user) {
-            var tags=req.body.tags
+            var tags = req.body.tags
             if (!user) {
                 res.status(404).json({ message: 'The requested User does not exist' })
             } else {
@@ -140,13 +143,13 @@ app.route('/articles')
                     body: req.body.body,
                     slug: slug,
                     author: user.username,
-                    favcount:0,
+                    favcount: 0,
                     tags: tags
                 })
                     .then(function (article) {
                         var pro = { username: user.username, bio: user.bio, image: user.image, following: 'false' }
                         var artic = { slug: article.slug, title: article.title, description: article.description, body: article.body, favoritedCount: article.favcount, createdAt: article.createdAt, updatedAt: article.updatedAt, tags: article.tags, author: pro }
-                        if(tags){   //wrote this condition as tags are optional
+                        if (tags) {   //wrote this condition as tags are optional
                             tagArray = article.tags.split(',')
                             for (i = 0; i < tagArray.length; i++) {
                                 Tag.create({
@@ -157,8 +160,10 @@ app.route('/articles')
                         res.status(201).json({ article: artic })
                     })
             }
+        }).catch(error => {
+            res.status(404).json({ message: 'Not Found' })
         })
-    })
+    });
 
 //api to get and update the particluar article 
 app.route('/articles/:slug')
@@ -173,12 +178,15 @@ app.route('/articles/:slug')
                     .then(function (user) {
                         var pro = { username: user.username, bio: user.bio, image: user.image, following: 'false' }
                         var artic = { slug: article.slug, title: article.title, description: article.description, body: article.body, favoritedCount: article.favcount, createdAt: article.createdAt, updatedAt: article.updatedAt, author: pro }
-                        res.status(201).json({ article: artic })
+                        res.status(200).json({ article: artic })
                     })
             }
-        });
+        }).catch(error => {
+            res.status(404).json({ message: 'Not Found' })
 
+        })
     })
+
     // update the particular article 
     .put((req, res) => {
         var token = req.headers['token'];
@@ -198,18 +206,19 @@ app.route('/articles/:slug')
                 })
                 var tags = req.body.tags
                 Article.findOne({ where: { author: user.username } }).then(function (article) {
-                    if(article){
-                    console.log(article)
-                    db.run(`update articles set title=?, description=?,body=?,slug=? where slug=?`, [newtitle, description, body, slug1, slug])
-                    var pro = { username: user.username, bio: user.bio, image: user.image, following: 'false' }
-                    var artic = { slug: slug1, title: newtitle, description: description, body: body, tags: tags, createdAt: article.createdAt, updatedAt: article.updatedAt, author: pro }
-                    res.status(201).json({ article: artic })
+                    if (article) {
+                        console.log(article)
+                        db.run(`update articles set title=?, description=?,body=?,slug=? where slug=?`, [newtitle, description, body, slug1, slug])
+                        var pro = { username: user.username, bio: user.bio, image: user.image, following: 'false' }
+                        var artic = { slug: slug1, title: newtitle, description: description, body: body, tags: tags, createdAt: article.createdAt, updatedAt: article.updatedAt, author: pro }
+                        res.status(201).json({ article: artic })
                     }
-                    else{
-                        res.status(401).json({message:"cannot find the article with the given parameters"})
+                    else {
+                        res.status(404).json({ message: "cannot find the article with the given parameters" })
                     }
                 })
             }
+
         })
     });
 
@@ -224,8 +233,10 @@ app.delete('/articles/:slug', (req, res) => {
             } else {
                 const slug1 = req.params.slug
                 db.run(`delete from articles where slug=?`, [slug1])
-                res.status(201).json({ message: 'article deleted successfully' })
+                res.status(202).json({ message: 'article deleted successfully' })
             }
+        }).catch(error => {
+            res.status(400).json({ message: 'could not fullfill this delete request please try again:(' })
         })
 })
 
@@ -233,7 +244,7 @@ app.delete('/articles/:slug', (req, res) => {
 app.post('/articles/:slug/favorite', (req, res) => {
     var token = req.headers['token'];
     var id = authorization(token, req, res)
-     User.findOne({ where: [{ id: id }] }).then(function (user) {
+    User.findOne({ where: [{ id: id }] }).then(function (user) {
         if (!user) {
             res.status(404).json({ message: 'The requested User does not exist' })
         } else {
@@ -249,18 +260,20 @@ app.post('/articles/:slug/favorite', (req, res) => {
                     })
                     var favorited = 'true'
                     var favcount = article.favcount + 1
-                    db.run(`update articles set favcount=? where slug=?`, [favcount, article.slug])
                     var pro = { username: user.username, bio: user.bio, image: user.image, following: 'false' }
+                    db.run(`update articles set favcount=? where slug=?`, [favcount, slug])
                     var art = { slug: article.slug, title: article.title, description: article.description, body: article.body, createdAt: article.createdAt, updatedAt: article.updatedAt, favorited: favorited, favoritescount: favcount, author: pro }
-                    res.status(200).json({ article: art })
+                    res.status(202).json({ article: art })
                 }
             })
         }
+    }).catch(error => {
+        res.status(404).json({ message: 'Not Found' })
     })
- })
+})
 
 //api to unfavorite the article
-    app.route('/articles/:slug/favorite')
+app.route('/articles/:slug/favorite')
     .delete((req, res) => {
         var token = req.headers['token'];
         var id = authorization(token, req, res)
@@ -269,29 +282,30 @@ app.post('/articles/:slug/favorite', (req, res) => {
             if (!user) {
                 res.status(404).json({ message: 'The requested User does not exist' })
             } else {
-                var slug=req.params.slug
+                var slug = req.params.slug
                 Article.findOne({ where: [{ slug: slug }] }).then(function (article) {
                     if (!article) {
                         res.status(404).json({ message: 'The requested User does not exist' })
                     } else {
-                            if (article.favcount == 0) {
-                                 favcount = article.favcount
-                                }
-                            else {
-                                favcount = article.favcount - 1
-                            }
-                        var favorited='false'
+                        if (article.favcount == 0) {
+                            favcount = article.favcount
+                        }
+                        else {
+                            favcount = article.favcount - 1
+                        }
+                        var favorited = 'false'
                         var pro = { username: user.username, bio: user.bio, image: user.image, following: 'false' }
-                        db.run(`update articles set favcount=?`, [favcount])
+                        db.run(`update articles set favcount=? where slug=?`, [favcount, slug])
                         var art = { slug: article.slug, title: article.title, description: article.description, body: article.body, createdAt: article.createdAt, updatedAt: article.updatedAt, favorited: favorited, favoritescount: favcount, author: pro }
                         res.status(200).json({ article: art })
                     }
                 })
             }
         })
+            .catch(error => {
+                res.status(404).json({ message: 'Not Found' })
+            })
     })
-
-
 
 
 module.exports = app

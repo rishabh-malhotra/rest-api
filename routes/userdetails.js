@@ -29,7 +29,9 @@ route.post('/users', (req, res) => {
             else {
                 res.status(400).json({ message: 'User can\'tt be created' })
             }
-        })
+        }) .catch(error => {
+            res.status(400).json({message:'User wasn\'tt created please try again:(' })
+        })   
 });
 
 //api to login the user
@@ -45,11 +47,13 @@ route.post('/users/login', (req, res) => {
             };
             var token = jwt1.encode(playload, config.secret, process.env.TOKEN_SECRET);
             var authuser = { email: req.body.email, token: token, username: user.username, bio: user.bio, image: user.image }
-            res.status(201).json({ user: authuser })
+            res.status(202).json({ user: authuser })
 
         }
 
-    })
+    }).catch(error => {
+        res.status(444).json({message:'No Response please try again:('})
+    }) 
 
 });
 
@@ -64,10 +68,12 @@ route.get('/user', (req, res) => {
             res.status(404).json({ message: 'The requested User does not exist' })
         } else {
             var authuser = { email: user.email, token: token, username: user.username, bio: user.bio, image: user.image }
-            res.status(201).json({ user: authuser })
+            res.status(200).json({ user: authuser })
 
         }
-    });
+    }) .catch(error => {
+        res.status(404).json({message:'No Response'})
+    }) 
 
 })
 //api to follow the particular user
@@ -77,7 +83,7 @@ route.post('/profiles/:username/follow', (req, res) => {
     var username = req.params.username
     User.findOne({ where: [{ id: id }] }).then(function (user) {
         if (!user) {
-            res.status(404).json({ message: 'The requested User does not exist' })
+            res.status(404).json({ message: 'Unauthorised: User does not exist with the provided credentials' })
         } else {
             Follow.create({
                 followuser: req.params.username,
@@ -89,12 +95,14 @@ route.post('/profiles/:username/follow', (req, res) => {
                 } else {
                     var follow = user1.following = 'true'
                     var pro = { username: user1.username, bio: user1.bio, image: user1.image, following: follow }
-                    res.status(200).json({ profile: pro })
+                    res.status(202).json({ profile: pro })
                 }
 
             })
         }
-    })
+    }) .catch(error => {
+        res.status(403).json({message:'Forbidden'})
+    }) 
 })
 
 //api to unfollow the user by loggedin user
@@ -125,7 +133,9 @@ route.delete('/profiles/:username/follow', (req, res) => {
                 }
             })    
         }
-    })
+    }) .catch(error => {
+        res.status(304).json({message:'Not Modified,Please try again:('})
+    }) 
 })
 
 //update the current user
@@ -134,22 +144,54 @@ route.put('/user', (req, res) => {
     var token = req.headers['token'];
     var token1 = token
     var id = authorization(token, req, res)
-    var email = req.body.email
-    var username = req.body.username
-    var password = req.body.password
-    var image = req.body.image
-    var bio = req.body.bio
+    var email
+    var username
+    var password
+    var image
+    var bio
     User.findOne({ where: [{ id: id }] }).then(function (user1) {
         if (!user1) {
             res.status(404).json({ message: 'The requested User does not exist' })
         } else {
+            if(req.body.email==null){
+                email=user1.email
+            }
+            else{
+                email=req.body.email
+            }
+            if(req.body.username==null){
+                username=user1.username
+            }
+            else{
+                username=req.body.username
+            }
+            if(req.body.password==null){
+                password=user1.password
+            }
+            else{
+                password=req.body.password
+            }
+            if(req.body.image==null){
+                image=user1.image
+            }
+            else{
+                image=req.body.image
+            }
+            if(req.body.bio==null){
+                bio=user1.bio
+            }
+            else{
+                bio=req.body.bio
+            }
             db.run(`update users set username=?,email=?,password=?,image=?,bio=? where id=?`, [username, email, password, image, bio, id])
-            var updateduser = { email: user1.email, token: token1, username: user1.username, bio: user1.bio, image: user1.image }
-            res.status(201).json({ user: updateduser })
-        }
-
-    })
-
+            User.findOne({where:{email:email}}).then (function(newuser){         
+                var updateduser = { email: newuser.email, token: token1, username: newuser.username, bio: newuser.bio, image: newuser.image }
+                res.status(202).json({ user: updateduser })  })
+            }      
+        })
+        .catch(error => {
+            res.status(409).json({message:'Could\'nt update the current user please try again:(' })
+        }) 
 });
 
 module.exports = route
