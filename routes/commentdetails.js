@@ -5,10 +5,10 @@ var app = express()
 var CommentonArticle = require('../models/comment')
 const sqlite3 = require('sqlite3');
 var authorization=require('../auth')
-let db = new sqlite3.Database('./models/database1.db');
+let db = new sqlite3.Database('./models/realworld.db');
 
 //api to post the comment on the particular article
-app.route('/articles/:slug/comments')
+app.route('/api/articles/:slug/comments')
     .post((req, res) => {
         var token = req.headers['token'];
         var id=authorization(token,req, res)   
@@ -34,7 +34,7 @@ app.route('/articles/:slug/comments')
             })
     })
 //to get all the comments on the particular article
-app.route('/articles/:slug/comments')
+app.route('/api/articles/:slug/comments')
     .get((req, res) => {
         const slug = req.params.slug
         Article.findOne({ where: { slug: slug } }).then(function (article) {
@@ -51,7 +51,7 @@ app.route('/articles/:slug/comments')
     })
 
 //api to delete the particular comment
-app.delete('/articles/:slug/comments/:cid', (req, res) => {
+app.delete('/api/articles/:slug/comments/:cid', (req, res) => {
     var token = req.headers['token'];
     var id=authorization(token,req, res)   
     User.findOne({ where: [{ id: id }] })

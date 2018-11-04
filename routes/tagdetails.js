@@ -3,7 +3,7 @@ var express = require('express')
 var app = express()
 
 //get all the tags defined in the api
-app.route('/tags')
+app.route('/api/tags')
     .get((req, res) => {
         Tag.findAll().then(function (tag) {
             res.status(200).json({tag})

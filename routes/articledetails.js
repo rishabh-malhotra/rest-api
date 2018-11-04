@@ -3,7 +3,7 @@ var Article = require('../models/article')
 var randomstring = require('randomstring')
 const sqlite3 = require('sqlite3');
 var authorization = require('../auth')
-let db = new sqlite3.Database('./models/database1.db');
+let db = new sqlite3.Database('./models/realworld.db');
 var Favorite = require('../models/favorite')
 var Follow = require('../models/follow')
 var Tag = require('../models/tags')
@@ -12,7 +12,7 @@ var app = express()
 
 
 //api to get the articles according to the filters like tag, author, limits etc
-app.route('/articles')
+app.route('api//articles')
     .get((req, res) => {
         for (let key of Object.keys(req.query)) {
             switch (key) {
@@ -100,7 +100,7 @@ app.route('/articles')
     });
 
 //api to get the feed articles
-app.get('/articles/feed', (req, res) => {
+app.get('/api/articles/feed', (req, res) => {
     var token = req.headers['token'];
     var id = authorization(token, req, res)
     User.findOne({ where: [{ id: id }] }).then(function (user) {
@@ -122,7 +122,7 @@ app.get('/articles/feed', (req, res) => {
 
 
 //api to post the article user can only post if he is logged in
-app.route('/articles')
+app.route('/api/articles')
     .post((req, res) => {
         var token = req.headers['token'];
         var id = authorization(token, req, res)
@@ -166,7 +166,7 @@ app.route('/articles')
     });
 
 //api to get and update the particluar article 
-app.route('/articles/:slug')
+app.route('/api/articles/:slug')
     .get((req, res) => {
         const slug = req.params.slug
         Article.findOne({ where: { slug: slug } }).then(function (article) {
@@ -223,7 +223,7 @@ app.route('/articles/:slug')
     });
 
 //api to delete the particular article 
-app.delete('/articles/:slug', (req, res) => {
+app.delete('/api/articles/:slug', (req, res) => {
     var token = req.headers['token'];
     var id = authorization(token, req, res)
     User.findOne({ where: [{ id: id }] })
@@ -241,7 +241,7 @@ app.delete('/articles/:slug', (req, res) => {
 })
 
 //api to favorite the particular article
-app.post('/articles/:slug/favorite', (req, res) => {
+app.post('/api/articles/:slug/favorite', (req, res) => {
     var token = req.headers['token'];
     var id = authorization(token, req, res)
     User.findOne({ where: [{ id: id }] }).then(function (user) {
@@ -273,7 +273,7 @@ app.post('/articles/:slug/favorite', (req, res) => {
 })
 
 //api to unfavorite the article
-app.route('/articles/:slug/favorite')
+app.route('/api/articles/:slug/favorite')
     .delete((req, res) => {
         var token = req.headers['token'];
         var id = authorization(token, req, res)

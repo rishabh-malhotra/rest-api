@@ -5,11 +5,11 @@ const route = Router()
 var jwt1 = require('jwt-simple')
 const sqlite3 = require('sqlite3');
 var authorization = require('../auth')
-let db = new sqlite3.Database('./models/database1.db');
+let db = new sqlite3.Database('./models/realworld.db');
 var Follow = require('../models/follow')
 
 //api to signup
-route.post('/users', (req, res) => {
+route.post('/api/users', (req, res) => {
 
     User.create({
         username: req.body.username,
@@ -35,7 +35,7 @@ route.post('/users', (req, res) => {
 });
 
 //api to login the user
-route.post('/users/login', (req, res) => {
+route.post('/api/users/login', (req, res) => {
     var email = req.body.email;
     var password = req.body.password;
     User.findOne({ where: [{ email: email, password: password }] }).then(function (user) {
@@ -60,7 +60,7 @@ route.post('/users/login', (req, res) => {
 
 
 //api to get the current user
-route.get('/user', (req, res) => {
+route.get('/api/user', (req, res) => {
     var token = req.headers['token'];
     var id = authorization(token, req, res)
     User.findOne({ where: [{ id: id }] }).then(function (user) {
@@ -77,7 +77,7 @@ route.get('/user', (req, res) => {
 
 })
 //api to follow the particular user
-route.post('/profiles/:username/follow', (req, res) => {
+route.post('/api/profiles/:username/follow', (req, res) => {
     var token = req.headers['token'];
     var id = authorization(token, req, res)
     var username = req.params.username
@@ -106,7 +106,7 @@ route.post('/profiles/:username/follow', (req, res) => {
 })
 
 //api to unfollow the user by loggedin user
-route.delete('/profiles/:username/follow', (req, res) => {
+route.delete('/api/profiles/:username/follow', (req, res) => {
 
     var token = req.headers['token'];
     var id = authorization(token, req, res)
@@ -139,7 +139,7 @@ route.delete('/profiles/:username/follow', (req, res) => {
 })
 
 //update the current user
-route.put('/user', (req, res) => {
+route.put('/api/user', (req, res) => {
 
     var token = req.headers['token'];
     var token1 = token
